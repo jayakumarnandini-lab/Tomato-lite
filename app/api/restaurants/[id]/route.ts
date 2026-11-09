@@ -34,6 +34,12 @@ export async function GET(
   const totalReviews = stats[0].total as number;
   const averageRating = totalReviews > 0 ? Number(stats[0].avg_rating) : null;
 
+  // computed: how many reviews at each star level (for the star filter on the page)
+  const counts = await sql.query(
+    "SELECT rating, COUNT(*)::int AS count FROM reviews WHERE restaurant_id = $1 GROUP BY rating ORDER BY rating;",
+    [restaurantId]
+  );
+
   // computed: newest review by created_at
   const latestRows = await sql.query(
     "SELECT id, rating, comment, created_at FROM reviews WHERE restaurant_id = $1 ORDER BY created_at DESC LIMIT 1;",
@@ -61,6 +67,7 @@ export async function GET(
     area: r.area,
     averageRating,
     totalReviews,
+    ratingCounts: counts.map((c) => ({ rating: c.rating as number, count: c.count as number })),
     latestReview,
     reviews: olderRows.map((row) => ({
       id: row.id as number,
